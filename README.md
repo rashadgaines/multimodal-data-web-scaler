@@ -1,152 +1,69 @@
-# Cosmos Curator
+# Multimodal Data Web Scaler
 
-A scalable pipeline for curating cosmology and astronomy video datasets.
+Scalable pipeline for curating video datasets from web sources.
 
-## Overview
-
-Cosmos Curator downloads videos, filters by quality and relevance, extracts frames and audio, transcribes speech, generates CLIP embeddings, and outputs ML-ready WebDataset shards.
+## How It Works
 
 ```
-URLs → Download → Filter → Extract → Embed → WebDataset
+Input URLs
+    ↓
+Download (yt-dlp)
+    ↓
+Technical Filter (resolution ≥720p, duration 10s-30min)
+    ↓
+Frame Extraction (ffmpeg @ configurable FPS)
+    ↓
+Relevance Filter (CLIP zero-shot similarity)
+    ↓
+Duplicate Filter (perceptual hashing)
+    ↓
+Audio Extraction (16kHz mono)
+    ↓
+Transcription (faster-whisper)
+    ↓
+Embedding Generation (CLIP)
+    ↓
+WebDataset Shards (.tar)
 ```
 
-## Installation
+## Output
 
-### Prerequisites
+Each shard contains:
+- `.mp4` - video file
+- `.json` - metadata (title, uploader, timestamps, CLIP scores)
+- `.txt` - transcript
+- `.npy` - frame embeddings
 
-- Python 3.11+
-- FFmpeg (`brew install ffmpeg` or `apt install ffmpeg`)
-- CUDA (optional, for GPU acceleration)
-
-### Install
+## Install
 
 ```bash
-git clone https://github.com/yourusername/cosmos-curator.git
-cd cosmos-curator
+# Prerequisites: Python 3.11+, ffmpeg
 pip install -e .
 ```
 
-## Quick Start
+## Usage
 
 ```bash
-# Create a file with video URLs
-echo "https://www.youtube.com/watch?v=VIDEO_ID" > urls.txt
-
-# Run the pipeline
+# Basic
 python run.py --urls urls.txt --output ./output
 
-# With verbose logging
-python run.py --urls urls.txt --output ./output --verbose
+# With config
+python run.py --config config.yaml
+
+# Distributed (Ray cluster)
+python run.py --urls urls.txt --output ./output --ray auto
 ```
 
 ## Configuration
 
-### CLI Options
-
-```
---urls, -u          Path to file with video URLs
---output, -o        Output directory (default: ./output)
---config, -c        Path to YAML config file
---min-res           Minimum resolution in pixels (default: 720)
---min-dur           Minimum duration in seconds (default: 10)
---max-dur           Maximum duration in seconds (default: 1800)
---clip-thresh       CLIP similarity threshold (default: 0.25)
---ray               Ray cluster address
---verbose, -v       Enable debug logging
-```
-
-### YAML Config
-
-```yaml
-input_urls: urls.txt
-output_dir: ./output
-min_resolution: 720
-min_duration: 10
-max_duration: 1800
-clip_threshold: 0.25
-frame_fps: 1.0
-whisper_model: base
-clip_model: ViT-B-32
-clip_pretrained: laion2b_s34b_b79k
-```
-
-```bash
-python run.py --config config.yaml
-```
-
-## Pipeline Stages
-
-| Stage | Description |
-|-------|-------------|
-| **Download** | Fetch videos via yt-dlp with metadata |
-| **Technical Filter** | Reject videos below resolution/duration thresholds |
-| **Relevance Filter** | CLIP zero-shot classification against cosmology prompts |
-| **Duplicate Filter** | Perceptual hashing to remove near-duplicates |
-| **Frame Extraction** | Sample frames at configurable FPS |
-| **Audio Extraction** | Extract 16kHz mono audio |
-| **Transcription** | Speech-to-text via faster-whisper |
-| **Embedding** | Generate CLIP embeddings for frames |
-| **Output** | Write WebDataset tar shards |
-
-## Output Format
-
-```
-output/
-└── shard-000000.tar
-    ├── 000000.mp4      # Video file
-    ├── 000000.json     # Metadata and labels
-    ├── 000000.txt      # Transcript
-    └── 000000.npy      # CLIP embeddings (N, 512)
-```
-
-### Loading Output
-
-```python
-import webdataset as wds
-import json
-
-dataset = wds.WebDataset("output/shard-*.tar")
-
-for sample in dataset:
-    metadata = json.loads(sample["json"])
-    transcript = sample["txt"].decode()
-    print(f"Title: {metadata['metadata']['title']}")
-    print(f"Transcript: {transcript[:100]}...")
-```
-
-## Distributed Processing
-
-Use Ray for distributed processing across multiple machines:
-
-```bash
-# Start Ray cluster
-ray start --head
-
-# Run with Ray
-python run.py --urls urls.txt --output ./output --ray auto
-```
-
-## Project Structure
-
-```
-cosmos_curator/
-├── __init__.py      # Package exports
-├── config.py        # Pydantic configuration model
-├── filters.py       # Quality and relevance filters
-├── extractors.py    # Frame/audio/transcript extraction
-└── pipeline.py      # Core pipeline and Video dataclass
-```
-
-## Requirements
-
-- ray[data]>=2.40
-- webdataset>=0.2
-- yt-dlp>=2024.1
-- torch>=2.5
-- open-clip-torch>=2.28
-- faster-whisper>=1.1
-- pydantic-settings>=2.6
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--min-res` | 720 | Minimum height (pixels) |
+| `--min-dur` | 10 | Minimum duration (seconds) |
+| `--max-dur` | 1800 | Maximum duration (seconds) |
+| `--clip-thresh` | 0.25 | CLIP similarity threshold |
+| `--verbose` | false | Debug logging |
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT

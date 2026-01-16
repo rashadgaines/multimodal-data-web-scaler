@@ -51,12 +51,14 @@ dmypy.json
 
 # Project specific
 demo_output/
+demo/
 test_output/
 output/
 *.tar
 *.wds
 temp/
 tmp/
+demo.md
 
 # Model caches
 .cache/
