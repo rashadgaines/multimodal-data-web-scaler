@@ -1,0 +1,8 @@
+input_urls: sample_urls.txt
+output_dir: ./demo_output
+min_resolution: 480
+min_duration: 5
+max_duration: 600
+clip_threshold: 0.2
+frame_fps: 0.5
+num_workers: 2
