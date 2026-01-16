@@ -78,3 +78,6 @@ Thumbs.db
 .env.*.local
 secrets.yaml
 credentials.json
+
+# Claude
+.claude/
